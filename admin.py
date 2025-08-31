@@ -1,18 +1,4 @@
-Here's the Python code equivalent of the provided HTML, using Flask for the web framework and Firebase for the database:
 
-```python
-from flask import Flask, render_template, request, jsonify
-import firebase_admin
-from firebase_admin import credentials, db
-from datetime import datetime
-
-app = Flask(__name__)
-
-# Initialize Firebase
-cred = credentials.Certificate("path/to/serviceAccountKey.json")
-firebase_admin.initialize_app(cred, {
-    'databaseURL': 'https://vae-self-site-default-rtdb.europe-west1.firebasedatabase.app'
-})
 
 @app.route('/')
 def index():
