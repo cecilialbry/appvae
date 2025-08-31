@@ -1,0 +1,979 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  
+
+  
+  <meta charset="UTF-8">
+  <title>Admin - Ajouter un plat</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f5f5f5;
+      margin: 20px;
+    }
+
+    h1, h2 {
+      text-align: center;
+      color: #333;
+    }
+
+    form {
+      background-color: #ffffff;
+      padding: 15px;
+      border-radius: 10px;
+      max-width: 600px;
+      margin: auto;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+
+    label {
+      display: block;
+      margin-top: 10px;
+      font-weight: bold;
+    }
+
+    input, select {
+      width: 100%;
+      padding: 8px;
+      margin-top: 4px;
+      margin-bottom: 10px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+    }
+
+    #mode-actuel {
+      text-align: center;
+      margin-top: 15px;
+      font-size: 1.1em;
+      color: #555;
+    }
+
+    #liste-plats > div {
+      border: 1px solid #ddd;
+      padding: 10px 15px;
+      margin: 12px auto;
+      max-width: 600px;
+      border-radius: 8px;
+      background-color: #ffffff;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    }
+
+    button {
+      padding: 6px 12px;
+      font-size: 14px;
+      border-radius: 5px;
+      border: 1px solid #aaa;
+      background-color: #eaeaea;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+
+    button:hover {
+      background-color: #d8d8d8;
+    }
+
+    #resultat-commandes {
+      max-width: 600px;
+      margin: auto;
+      background-color: #fff;
+      padding: 10px;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    }
+
+    hr {
+      margin: 20px 0;
+    }
+    .calendar {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 5px;
+  max-width: 700px;
+  margin: auto;
+  text-align: center;
+  margin-top: 20px;
+}
+.day {
+  border: 1px solid #ccc;
+  padding: 10px;
+  min-height: 60px;
+  font-size: 14px;
+  background-color: white;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.header {
+  font-weight: bold;
+  background-color: #eee;
+  cursor: default;
+}
+
+  </style>
+  <link rel="stylesheet" href="style.css">
+<!-- Firebase SDK -->
+
+</script>
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+  import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyCHClKNancbvFb3peypZAG5q6qOny9rUEc",
+    authDomain: "vae-self-site.firebaseapp.com",
+    databaseURL: "https://vae-self-site-default-rtdb.europe-west1.firebasedatabase.app",
+    projectId: "vae-self-site",
+    storageBucket: "vae-self-site.appspot.com",
+    messagingSenderId: "312344689130",
+    appId: "1:312344689130:web:c8c98f2b7a820533419a93",
+    measurementId: "G-YEVD3PMQ4V"
+  };
+
+  // 🔸 Tu colles CE BLOC juste ici :
+  const app = initializeApp(firebaseConfig);
+  const db = getDatabase(app);
+
+  // 🔸 Puis tu ajoutes aussi CE CODE juste après :
+  function afficherPlatsDansCalendrier() {
+    const platsRef = ref(db, 'plats/');
+
+    onValue(platsRef, (snapshot) => {
+      const data = snapshot.val();
+      if (!data) return;
+
+      document.querySelectorAll('.day .plats').forEach(el => el.remove());
+
+      Object.entries(data).forEach(([id, plat]) => {
+        const date = new Date(plat.date);
+        const jour = date.getDate();
+        const caseJour = document.querySelector(`.day[data-day="${jour}"]`);
+        if (caseJour) {
+          const div = document.createElement("div");
+          div.className = "plats";
+          div.textContent = `${plat.nom} (${plat.parts} parts)`;
+          caseJour.appendChild(div);
+        }
+      });
+    });
+  }
+
+  afficherPlatsDansCalendrier();
+</script>
+
+
+</head>
+<body>
+
+  <h2>Ajouter une vente à emporter</h2>
+
+  <form id="form-plat">
+    <label>Date : <input type="date" id="date" required></label>
+    <label>Nom du plat : <input type="text" id="nom" required></label>
+    <label>Prix (€) : <input type="number" id="prix" step="0.01" required></label>
+    <label>Nombre de parts disponibles : <input type="number" id="parts" required></label>
+    <label>Image (URL) : <input type="text" id="image" required></label>
+    <label>Description : <input type="text" id="description" required></label>
+    <label>Professeur responsable (VAE) :</label>
+    <input type="text" id="prof" placeholder="Nom du professeur"><br><br>
+    <input type="hidden" id="type-plat" value="vae">
+
+
+    
+    <p id="mode-actuel" style="font-weight: bold;"></p>
+    <button type="submit">Ajouter le plat</button>
+  </form>
+
+<div id="calendrier" class="calendrier"></div>
+<h2>Ajouter un menu Self pédagogique</h2>
+<form id="form-self">
+  <form id="form-self">
+  <label>Date : <input type="date" id="date-self" required></label><br>
+  <label>Entrée : <input type="text" id="entree" required></label><br>
+  <label>Image entrée : <input type="text" id="image-entree" placeholder="URL image"></label><br>
+  <label>Plat : <input type="text" id="plat" required></label><br>
+  <label>Image plat : <input type="text" id="image-plat" placeholder="URL image"></label><br>
+  <label>Dessert : <input type="text" id="dessert" required></label><br>
+  <label>Image dessert : <input type="text" id="image-dessert" placeholder="URL image"></label><br>
+  <label>Chef responsable : <input type="text" id="chef" required></label><br>
+  
+
+
+ 
+  <input type="hidden" id="type-plat" value="self">
+  
+
+  <button type="submit">Ajouter</button>
+</form>
+
+  
+
+ 
+
+  <hr>
+<h2 style="text-align:center;">Calendrier des plats</h2>
+<div style="text-align: center; margin: 10px 0;">
+  <button id="mois-prec">⬅️ Mois précédent</button>
+  <span id="month-name" style="font-weight: bold; margin: 0 15px;"></span>
+  <button id="mois-suiv">Mois suivant ➡️</button>
+</div>
+
+<div class="calendar" id="calendar"></div>
+
+
+ 
+
+
+
+  <script>
+    let currentMonth = new Date().getMonth();
+    let currentYear = new Date().getFullYear();
+
+    document.getElementById("form-plat").addEventListener("submit", function(e) {
+      e.preventDefault();
+      const plat = {
+        date: document.getElementById("date").value,
+        type: "vae",
+        nom: document.getElementById("nom").value,
+        prix: parseFloat(document.getElementById("prix").value),
+        parts: parseInt(document.getElementById("parts").value),
+        image: document.getElementById("image").value,
+        description: document.getElementById("description").value,
+        prof: document.getElementById("prof").value.trim(),
+
+      };
+
+      const plats = JSON.parse(localStorage.getItem("plats") || "[]");
+      plats.push(plat);
+      localStorage.setItem("plats", JSON.stringify(plats));
+      alert("Plat enregistré !");
+      e.target.reset();
+      afficherPlats();
+    });
+
+    
+    function choisirMode(mode) {
+      localStorage.setItem("mode", mode);
+      document.getElementById("mode-actuel").innerText =
+        "Mode actuel : " + (mode === "self" ? "Self pédagogique" : "Vente à emporter");
+      
+    }
+
+    function afficherPlats() {
+      const mode = localStorage.getItem("mode") || "self";
+      const plats = JSON.parse(localStorage.getItem("plats") || "[]");
+      const liste = document.getElementById("liste-plats");
+      liste.innerHTML = "";
+
+      plats.filter(p => p.type === mode).forEach((plat, index) => {
+       const item = document.createElement("div");
+       item.style.cursor = "pointer";
+       item.onclick = () => ouvrirModaleAdmin(plat);
+
+       item.innerHTML = `
+        <div style="display: flex; align-items: center; justify-content: space-between;">
+          <div>
+            <strong>${plat.nom}</strong><br>
+            <small>${plat.date} – ${plat.type === 'self' ? 'Self pédagogique' : 'Vente à emporter'}</small><br>
+            <small>${plat.prix} € — ${plat.parts} part(s)</small>
+            ${plat.prof ? `<small>Professeur : ${plat.prof}</small><br>` : ""}
+          </div>
+          <div>
+            <button onclick="event.stopPropagation(); modifierPlat(${index})" style="margin-right:5px;">✏️ Modifier</button>
+            <button onclick="event.stopPropagation(); supprimerPlat(${index})">🗑️ Supprimer</button>
+          </div>
+        </div>
+  `;
+  liste.appendChild(item);
+});
+
+    }
+
+    function modifierPlat(index) {
+      alert("Modifier : fonction à compléter.");
+    }
+
+    function supprimerPlat(index) {
+  const plats = JSON.parse(localStorage.getItem("plats") || "[]");
+  if (confirm("Supprimer ce plat ?")) {
+    const platSupprimé = plats[index]; // 🟡 On garde une copie du plat avant suppression
+
+    plats.splice(index, 1);
+    localStorage.setItem("plats", JSON.stringify(plats));
+
+    // 🔴 Supprimer aussi les commandes liées à ce plat (même nom et même date)
+    const commandes = JSON.parse(localStorage.getItem("commandes") || "[]");
+    const nouvellesCommandes = commandes.filter(c =>
+      !(c.plat === platSupprimé.nom && c.date === platSupprimé.date)
+    );
+    localStorage.setItem("commandes", JSON.stringify(nouvellesCommandes));
+
+    afficherPlats();
+  }
+}
+
+
+  const jours = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'];
+function afficherCalendrierAdmin(mois, annee) {
+  const jours = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'];
+  const premierJour = new Date(annee, mois, 1).getDay();
+  const nbJours = new Date(annee, mois + 1, 0).getDate();
+
+  document.getElementById("month-name").innerText =
+    new Date(annee, mois).toLocaleString("fr-FR", { month: "long", year: "numeric" });
+
+  const cal = document.getElementById("calendar");
+  cal.innerHTML = "";
+
+  for (let j of jours) {
+    const cell = document.createElement("div");
+    cell.className = "day header";
+    cell.innerText = j;
+    cal.appendChild(cell);
+  }
+
+  const decalage = premierJour === 0 ? 6 : premierJour - 1;
+  for (let i = 0; i < decalage; i++) {
+    const vide = document.createElement("div");
+    vide.className = "day";
+    cal.appendChild(vide);
+  }
+
+  for (let d = 1; d <= nbJours; d++) {
+    const caseJour = document.createElement("div");
+    caseJour.className = "day";
+
+    const dateStr = `${annee}-${String(mois + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+    const plats = JSON.parse(localStorage.getItem("plats") || "[]");
+    const platsDuJour = plats.filter(p => p.date === dateStr);
+
+    let contenu = `<strong>${d}</strong>`;
+    caseJour.innerHTML = contenu;
+
+    platsDuJour.forEach(plat => {
+      const divPlat = document.createElement("div");
+      divPlat.style.cssText = "margin-top:5px; font-size:12px; border:1px solid #ccc; padding:3px; border-radius:5px; cursor:pointer;";
+      divPlat.innerHTML = `
+        <img src="${plat.image}" style="width:30px;"><br>
+        ${plat.nom}<br>${plat.prix} € – ${plat.parts} parts
+      `;
+      divPlat.addEventListener("click", (e) => {
+        e.stopPropagation();
+        ouvrirModaleAdmin(plat);
+      });
+      caseJour.appendChild(divPlat);
+    });
+
+    // Affichage du Self pédagogique
+    const menusSelf = JSON.parse(localStorage.getItem("menusSelf") || "[]");
+    const menuSelf = menusSelf.find(menu => menu.date === dateStr);
+
+    if (menuSelf) {
+  const divSelf = document.createElement("div");
+  divSelf.style.cssText = "margin-top:5px; font-size:12px; border:1px dashed #0074D9; padding:5px; border-radius:6px; background:#f0f8ff; cursor:pointer;";
+  divSelf.innerHTML = `
+    <strong>🍽️ Self pédagogique</strong><br>
+    Entrée : ${menuSelf.entree}<br>
+    Plat : ${menuSelf.plat}<br>
+    Dessert : ${menuSelf.dessert}<br>
+    <img src="${menuSelf.image || 'https://via.placeholder.com/40'}" style="width:40px;"><br>
+    
+  `;
+  divSelf.onclick = (e) => {
+    e.stopPropagation();
+    ouvrirModaleAdminSelf(menuSelf);
+  };
+  caseJour.appendChild(divSelf);
+}
+
+
+    cal.appendChild(caseJour);
+  }
+}
+
+
+
+
+
+function afficherCommandesParDate(date) {
+  const commandes = JSON.parse(localStorage.getItem("commandes") || "[]");
+  const commandesJour = commandes.filter(c => c.date === date);
+
+  let html = `<h2>Commandes du ${date}</h2>`;
+
+  if (commandesJour.length === 0) {
+    html += "<p>Aucune commande pour ce jour.</p>";
+  } else {
+    commandesJour.forEach((commande, index) => {
+      html += `
+        <div style="border:1px solid #ccc; padding:10px; margin-bottom:10px;">
+          <strong>${commande.nomClient}</strong><br>
+          Plat : ${commande.plat}<br>
+          Quantité : 
+          <input type="number" min="1" value="${commande.quantite}" onchange="modifierCommande(${index}, this.value)">
+          <br>
+          Prix unitaire : ${commande.prix} €<br>
+          Total : ${(commande.prix * commande.quantite).toFixed(2)} €<br><br>
+          <button onclick="supprimerCommande(${index})">🗑️ Supprimer</button>
+        </div>
+      `;
+    });
+  }
+
+  document.getElementById("modal-content").innerHTML = html;
+  document.getElementById("modal").style.display = "block";
+}
+function modifierCommande(index, nouvelleQuantite) {
+  const commandes = JSON.parse(localStorage.getItem("commandes") || "[]");
+  if (index >= 0 && index < commandes.length) {
+    commandes[index].quantite = parseInt(nouvelleQuantite);
+    localStorage.setItem("commandes", JSON.stringify(commandes));
+    alert("Quantité mise à jour.");
+  }
+}
+
+function supprimerCommande(index) {
+  const commandes = JSON.parse(localStorage.getItem("commandes") || "[]");
+  if (confirm("Supprimer cette commande ?")) {
+    commandes.splice(index, 1);
+    localStorage.setItem("commandes", JSON.stringify(commandes));
+    alert("Commande supprimée.");
+    document.getElementById("modal").style.display = "none";
+    afficherCalendrierAdmin(currentMonth, currentYear);
+  }
+}
+
+  
+
+ 
+
+  
+
+
+
+
+
+document.getElementById("mois-prec").addEventListener("click", () => {
+  currentMonth--;
+  if (currentMonth < 0) {
+    currentMonth = 11;
+    currentYear--;
+  }
+  afficherCalendrierAdmin(currentMonth, currentYear);
+});
+
+document.getElementById("mois-suiv").addEventListener("click", () => {
+  currentMonth++;
+  if (currentMonth > 11) {
+    currentMonth = 0;
+    currentYear++;
+  }
+  afficherCalendrierAdmin(currentMonth, currentYear);
+});
+
+
+  const mode = localStorage.getItem("mode") || "self";
+  choisirMode(mode);
+  afficherPlats();
+  
+
+
+
+
+  </script>
+  
+
+<script>
+  document.addEventListener("DOMContentLoaded", () => {
+    const mode = localStorage.getItem("mode") || "self";
+    localStorage.setItem("mode", mode);
+    document.getElementById("mode-actuel").innerText =
+      "Mode actuel : " + (mode === "self" ? "Self pédagogique" : "Vente à emporter");
+
+    afficherPlats();  // ← optionnel si tu gardes la section "plats existants"
+    afficherCalendrierAdmin(currentMonth, currentYear);
+  });
+
+function ouvrirModaleAdmin(plat) {
+  const contenu = `
+    <h2 style="text-align:center;">${plat.nom}</h2>
+    <p><strong>Date :</strong> ${plat.date}</p>
+    <p><strong>Prix :</strong> ${plat.prix} €</p>
+    <p><strong>Parts restantes :</strong> ${plat.parts}</p>
+    <p><strong>Description :</strong> ${plat.description}</p>
+    ${plat.prof ? `<p><strong>Professeur :</strong> ${plat.prof}</p>` : ""}
+    <img src="${plat.image}" style="max-width: 100%; height: auto; margin-top: 10px;"><br><br>
+
+    <div style="text-align:center; margin-bottom: 15px;">
+      <button onclick="modifierPlatDepuisModale('${plat.date}', \`${plat.nom}\`)">✏️ Modifier le plat</button>
+      <button onclick="supprimerPlatDepuisModale('${plat.date}', \`${plat.nom}\`)" style="margin-left:10px;">🗑️ Supprimer</button>
+    </div>
+
+    <div style="text-align:center;">
+      <button onclick='afficherResumeCommandes("${plat.date}", "${encodeURIComponent(plat.nom)}")'>📋 Voir les commandes</button>
+    </div>
+
+    <div id="resume-commandes" style="margin-top:15px;"></div>
+  `;
+
+  document.getElementById("modal-admin-content").innerHTML = contenu;
+  document.getElementById("modal-admin").style.display = "block";
+}
+
+function modifierPlatDepuisModale(date, nom) {
+  const plats = JSON.parse(localStorage.getItem("plats") || "[]");
+  const plat = plats.find(p => p.nom === nom && p.date === date);
+
+  if (!plat) {
+    alert("Plat non trouvé !");
+    return;
+  }
+
+  const contenu = `
+    <h2 style="text-align:center;">Modifier le plat</h2>
+
+    <label>Nom :</label><br>
+    <input type="text" id="edit-plat-nom" value="${plat.nom}"><br><br>
+
+    <label>Prix (€) :</label><br>
+    <input type="number" id="edit-plat-prix" value="${plat.prix}"><br><br>
+
+    <label>Parts restantes :</label><br>
+    <input type="number" id="edit-plat-parts" value="${plat.parts}"><br><br>
+
+    <label>Description :</label><br>
+    <textarea id="edit-plat-desc">${plat.description || ""}</textarea><br><br>
+
+    <label>Image (URL) :</label><br>
+    <input type="text" id="edit-plat-image" value="${plat.image || ""}"><br><br>
+
+    <label>Professeur :</label><br>
+    <input type="text" id="edit-plat-prof" value="${plat.prof || ""}"><br><br>
+
+    <button onclick="validerModificationPlat('${date}', \`${nom}\`)">✅ Enregistrer les modifications</button>
+  `;
+
+  document.getElementById("modal-admin-content").innerHTML = contenu;
+}
+
+  
+
+
+function fermerModaleAdmin() {
+  document.getElementById("modal-admin").style.display = "none";
+}
+</script>
+
+</script>
+<!-- Fenêtre modale pour afficher les commandes d'un jour -->
+ 
+
+<div id="modal-admin" style="
+  display: none;
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  z-index: 1000;
+  overflow: auto;
+">
+  <div style="
+    background: white;
+    margin: 60px auto;
+    padding: 20px;
+    border-radius: 10px;
+    max-width: 500px;
+    width: 90%;
+    box-sizing: border-box;
+    position: relative;
+  ">
+    <span onclick="fermerModaleAdmin()" style="
+      position: absolute;
+      top: 10px;
+      right: 15px;
+      font-weight: bold;
+      cursor: pointer;
+      font-size: 20px;
+    ">✖</span>
+    <div id="modal-admin-content"></div>
+  </div>
+</div>
+
+
+
+<script>
+  function modifierPlatDepuisModale(date, nom) {
+  const plats = JSON.parse(localStorage.getItem("plats") || "[]");
+  const plat = plats.find(p => p.date === date && p.nom === nom);
+
+  if (!plat) {
+    alert("Plat non trouvé.");
+    return;
+  }
+
+  const contenu = `
+  <h2 style="text-align:center;">Modifier le plat</h2>
+  <form id="form-modif-plat">
+    <label>Nom : <input type="text" name="nom" value="${plat.nom}" required></label><br>
+    <label>Prix (€) : <input type="number" name="prix" value="${plat.prix}" required></label><br>
+    <label>Parts restantes : <input type="number" name="parts" value="${plat.parts}" required></label><br>
+    <label>Description : <input type="text" name="description" value="${plat.description}" required></label><br>
+    <label>Image (URL) : <input type="text" name="image" value="${plat.image}" required></label><br>
+    <label>Professeur : <input type="text" name="prof" value="${plat.prof || ''}"></label><br><br>
+
+    <div style="text-align:center;">
+      <button type="submit">✅ Enregistrer les modifications</button>
+      <button type="button" onclick="fermerModaleAdmin()" style="margin-left:10px;">❌ Annuler</button>
+    </div>
+  </form>
+`;
+document.getElementById("modal-admin-content").innerHTML = contenu;
+// Attacher l'événement de soumission au formulaire généré
+setTimeout(() => {
+  const form = document.getElementById("form-modif-plat");
+  if (form) {
+    form.addEventListener("submit", function(e) {
+      e.preventDefault();
+      const formData = new FormData(form);
+      validerModificationPlatForm(date, nom, formData);
+    });
+  }
+}, 50); // léger délai pour s'assurer que le DOM est chargé
+
+
+ 
+}
+function validerModificationPlatForm(dateOriginale, nomOriginal, formData) {
+  const plats = JSON.parse(localStorage.getItem("plats") || "[]");
+
+  const index = plats.findIndex(p => p.date === dateOriginale && p.nom === nomOriginal);
+  if (index === -1) {
+    alert("Plat introuvable !");
+    return;
+  }
+
+  plats[index] = {
+    date: dateOriginale,
+    nom: formData.get("nom"),
+    prix: parseFloat(formData.get("prix")),
+    parts: parseInt(formData.get("parts")),
+    description: formData.get("description"),
+    image: formData.get("image"),
+    prof: formData.get("prof"),
+    type: plats[index].type // conserve le type (vae/self)
+  };
+
+  localStorage.setItem("plats", JSON.stringify(plats));
+  alert("Modifications enregistrées !");
+  fermerModaleAdmin();
+  afficherPlats();
+  afficherCalendrierAdmin(currentMonth, currentYear);
+}
+
+
+
+
+
+  function supprimerPlatDepuisModale(date, nom) {
+    if (!confirm("Supprimer ce plat ?")) return;
+
+    let plats = JSON.parse(localStorage.getItem("plats") || "[]");
+    plats = plats.filter(p => !(p.nom === nom && p.date === date));
+    localStorage.setItem("plats", JSON.stringify(plats));
+
+    // Supprimer aussi les commandes associées
+    let commandes = JSON.parse(localStorage.getItem("commandes") || "[]");
+    commandes = commandes.filter(c => !(c.plat === nom && c.date === date));
+    localStorage.setItem("commandes", JSON.stringify(commandes));
+
+    alert("Plat supprimé.");
+    fermerModaleAdmin();
+    afficherCalendrierAdmin(currentMonth, currentYear);
+    afficherPlats();
+  }
+ function afficherResumeCommandes(date, nomEncoded) {
+  const nom = decodeURIComponent(nomEncoded); // ⬅️ on décode le nom du plat
+  const commandes = JSON.parse(localStorage.getItem("commandes") || "[]");
+  const commandesPlat = commandes.filter(c => c.plat === nom && c.date === date);
+
+  let html = "<h3 style='margin-top:15px;'>Commandes enregistrées :</h3>";
+
+  if (commandesPlat.length === 0) {
+    html += "<p style='text-align:center;'>Aucune commande pour ce plat.</p>";
+  } else {
+    commandesPlat.forEach((c, index) => {
+      html += `
+        <div style="border:1px solid #ccc; padding:10px; margin-bottom:10px; border-radius:6px;">
+          <form id="form-commande-${index}">
+            <p><strong>Client :</strong> ${c.nomClient}</p>
+            <p><strong>Plat :</strong> ${c.plat}</p>
+            <p><strong>Date :</strong> ${c.date}</p>
+            <p><strong>Prix unitaire :</strong> ${c.prix.toFixed(2)} €</p>
+            <p>
+              <strong>Quantité :</strong> 
+              <input type="number" name="quantite" min="1" value="${c.quantite}" required>
+              <input type="hidden" name="plat" value="${c.plat}">
+              <input type="hidden" name="date" value="${c.date}">
+            </p>
+            <p><strong>Total :</strong> ${(c.prix * c.quantite).toFixed(2)} €</p>
+            <div style="text-align:center; margin-top:10px;">
+              <button type="submit">✅ Modifier la quantité</button>
+              <button type="button" onclick="supprimerCommandeParIndex(${index}, '${c.date}', '${c.plat}')" style="margin-left:10px; color:red;">🗑️ Supprimer</button>
+            </div>
+          </form>
+        </div>
+      `;
+    });
+  }
+
+  document.getElementById("resume-commandes").innerHTML = html;
+
+  // Activation des formulaires
+  commandesPlat.forEach((c, index) => {
+    const form = document.getElementById(`form-commande-${index}`);
+    if (form) {
+      form.addEventListener("submit", function(e) {
+        e.preventDefault();
+        modifierCommandeComplet(index, new FormData(form));
+      });
+    }
+  });
+}
+
+  document.getElementById("resume-commandes").innerHTML = html;
+function choisirType(type) {
+  document.getElementById('type-plat').value = type;
+}
+
+function modifierCommande(index) {
+  const commandes = JSON.parse(localStorage.getItem("commandes") || "[]");
+  const cmd = commandes[index];
+  if (!cmd) {
+    alert("Commande non trouvée");
+    return;
+  }
+
+  const nouvelleQuantite = prompt(`Modifier la quantité pour ${cmd.nomClient} (actuel : ${cmd.quantite}) :`, cmd.quantite);
+  const qte = parseInt(nouvelleQuantite);
+  if (isNaN(qte) || qte <= 0) {
+    alert("Quantité invalide");
+    return;
+  }
+
+  commandes[index].quantite = qte;
+  localStorage.setItem("commandes", JSON.stringify(commandes));
+  alert("Commande modifiée !");
+  
+  // Actualiser l'affichage après modification
+  afficherResumeCommandes(cmd.date, cmd.plat);
+}
+function modifierCommandeComplet(indexGlobal, formData) {
+  let commandes = JSON.parse(localStorage.getItem("commandes") || "[]");
+
+  const nouvellesQuantite = parseInt(formData.get("quantite"));
+  if (isNaN(nouvellesQuantite) || nouvellesQuantite <= 0) {
+    alert("Quantité invalide !");
+    return;
+  }
+
+  const plat = formData.get("plat");
+  const date = formData.get("date");
+
+  const commandesPlat = commandes.filter(c => c.plat === plat && c.date === date);
+  const commandeAmodifier = commandesPlat[indexGlobal];
+  const realIndex = commandes.findIndex(c => c === commandeAmodifier);
+
+  if (realIndex === -1) {
+    alert("Erreur : commande non trouvée");
+    return;
+  }
+
+  commandes[realIndex].quantite = nouvellesQuantite;
+
+  localStorage.setItem("commandes", JSON.stringify(commandes));
+  alert("Quantité mise à jour !");
+  afficherResumeCommandes(date, plat);
+}
+
+  
+function supprimerCommandeParIndex(indexGlobal, date, nomPlat) {
+  if (!confirm("Supprimer cette commande définitivement ?")) return;
+
+  let commandes = JSON.parse(localStorage.getItem("commandes") || "[]");
+  const commandesPlat = commandes.filter(c => c.plat === nomPlat && c.date === date);
+  if (indexGlobal >= commandesPlat.length) {
+    alert("Erreur : index commande invalide");
+    return;
+  }
+
+  // Trouver l’index réel dans `commandes`
+  const commandeASupprimer = commandesPlat[indexGlobal];
+  const realIndex = commandes.findIndex(c => c === commandeASupprimer);
+  if (realIndex === -1) {
+    alert("Erreur : commande non trouvée");
+    return;
+  }
+
+  commandes.splice(realIndex, 1);
+  localStorage.setItem("commandes", JSON.stringify(commandes));
+  alert("Commande supprimée.");
+
+  // Raffraîchir la liste
+  afficherResumeCommandes(date, nomPlat);
+}
+
+</script>
+<script>
+  document.getElementById("form-self").addEventListener("submit", function (e) {
+  e.preventDefault();
+  const menu = {
+    date: document.getElementById("date-self").value,
+    entree: document.getElementById("entree").value,
+    imageEntree: document.getElementById("image-entree").value,
+    plat: document.getElementById("plat").value,
+    imagePlat: document.getElementById("image-plat").value,
+    dessert: document.getElementById("dessert").value,
+    imageDessert: document.getElementById("image-dessert").value,
+    chef: document.getElementById("chef").value
+  };
+
+  const menus = JSON.parse(localStorage.getItem("menusSelf") || "[]");
+  menus.push(menu);
+  localStorage.setItem("menusSelf", JSON.stringify(menus));
+  alert("Menu self ajouté !");
+  this.reset(); 
+});
+function ouvrirModaleAdminSelf(menuSelf) {
+  const contenu = `
+    <h2 style="text-align:center;">Modifier le menu Self pédagogique</h2>
+    <form id="form-modif-self">
+      <label>Date : <input type="date" name="date" value="${menuSelf.date}" required></label><br><br>
+      
+      <label>Entrée : <input type="text" name="entree" value="${menuSelf.entree}" required></label><br>
+      <label>Image entrée : <input type="text" name="imageEntree" value="${menuSelf.imageEntree || ''}"></label><br><br>
+      
+      <label>Plat : <input type="text" name="plat" value="${menuSelf.plat}" required></label><br>
+      <label>Image plat : <input type="text" name="imagePlat" value="${menuSelf.imagePlat || ''}"></label><br><br>
+      
+      <label>Dessert : <input type="text" name="dessert" value="${menuSelf.dessert}" required></label><br>
+      <label>Image dessert : <input type="text" name="imageDessert" value="${menuSelf.imageDessert || ''}"></label><br><br>
+      
+      <label>Chef responsable : <input type="text" name="chef" value="${menuSelf.chef}" required></label><br><br>
+      
+      <div style="text-align:center; margin-top:15px;">
+        <button type="submit">✅ Enregistrer les modifications</button>
+        <button type="button" onclick="supprimerMenuSelf('${menuSelf.date}')" style="margin-left:10px; color:red;">🗑 Supprimer</button>
+      </div>
+    </form>
+  `;
+
+  document.getElementById("modal-admin-content").innerHTML = contenu;
+  document.getElementById("modal-admin").style.display = "block";
+
+  // Gestion de la soumission du formulaire
+  setTimeout(() => {
+    const form = document.getElementById("form-modif-self");
+    if (form) {
+      form.addEventListener("submit", function(e) {
+        e.preventDefault();
+        validerModificationSelf(new FormData(form), menuSelf.date);
+      });
+    }
+  }, 50);
+}
+function validerModificationSelf(formData, ancienneDate) {
+  let menus = JSON.parse(localStorage.getItem("menusSelf") || "[]");
+
+  const nouveauMenu = {
+    date: formData.get("date"),
+    entree: formData.get("entree"),
+    imageEntree: formData.get("imageEntree"),
+    plat: formData.get("plat"),
+    imagePlat: formData.get("imagePlat"),
+    dessert: formData.get("dessert"),
+    imageDessert: formData.get("imageDessert"),
+    chef: formData.get("chef")
+  };
+
+  // On remplace le menu self existant à la même date
+  const index = menus.findIndex(m => m.date === ancienneDate);
+  if (index !== -1) {
+    menus[index] = nouveauMenu;
+  } else {
+    menus.push(nouveauMenu); // au cas où on modifie une date non encore enregistrée
+  }
+
+  localStorage.setItem("menusSelf", JSON.stringify(menus));
+  alert("Menu self modifié !");
+  fermerModaleAdmin(); // refermer la modale
+  afficherCalendrierAdmin(currentMonth, currentYear); // mettre à jour le calendrier
+}
+function supprimerMenuSelf(date) {
+  if (!confirm("Supprimer ce menu self ?")) return;
+
+  let menus = JSON.parse(localStorage.getItem("menusSelf") || "[]");
+  menus = menus.filter(m => m.date !== date);
+
+  localStorage.setItem("menusSelf", JSON.stringify(menus));
+  alert("Menu supprimé !");
+  fermerModaleAdmin();
+  afficherCalendrierAdmin(currentMonth, currentYear);
+}
+
+function soumettreModificationSelf(event, ancienneDate) {
+  event.preventDefault();
+  const form = event.target;
+  let menus = JSON.parse(localStorage.getItem("menusSelf") || "[]");
+
+  const nouveauMenu = {
+    date: ancienneDate,
+    entree: form.entree.value,
+    plat: form.plat.value,
+    dessert: form.dessert.value,
+    responsable: form.responsable.value,
+    image: form.image.value,
+    type: "self"
+  };
+
+  // remplace l'ancien menu à la même date
+  const index = menus.findIndex(m => m.date === ancienneDate);
+  if (index !== -1) {
+    menus[index] = nouveauMenu;
+  } else {
+    menus.push(nouveauMenu);
+  }
+
+  localStorage.setItem("menusSelf", JSON.stringify(menus));
+  alert("Menu modifié !");
+  fermerModaleAdmin();
+  afficherCalendrierAdmin(currentMonth, currentYear);
+}
+
+function supprimerMenuSelf(date) {
+  if (!confirm("Supprimer ce menu self ?")) return;
+
+  let menus = JSON.parse(localStorage.getItem("menusSelf") || "[]");
+  menus = menus.filter(m => m.date !== date);
+
+  localStorage.setItem("menusSelf", JSON.stringify(menus));
+  alert("Menu supprimé !");
+  fermerModaleAdmin();
+  afficherCalendrierAdmin(currentMonth, currentYear);
+}
+
+
+</script>
+<div id="modal-self" class="modal">
+  <div class="modal-content">
+    <span class="close" onclick="fermerModaleSelf()">&times;</span>
+    <div id="modal-self-contenu"></div>
+  </div>
+</div>
+
+
+
+
+<script>
+
+</script>
+
+</body>
+</html>

@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+  import { getDatabase, ref, set, push } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyCHClKNancbvFb3peypZAG5q6qOny9rUEc",
+    authDomain: "vae-self-site.firebaseapp.com",
+    databaseURL: "https://vae-self-site-default-rtdb.europe-west1.firebasedatabase.app",
+    projectId: "vae-self-site",
+    storageBucket: "vae-self-site.appspot.com",
+    messagingSenderId: "312344689130",
+    appId: "1:312344689130:web:c8c98f2b7a820533419a93",
+    measurementId: "G-YEVD3PMQ4V"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getDatabase(app);
+
+  // 🔧 TEST – Ajouter un plat dans la base
+  const platRef = push(ref(db, 'plats'));
+  set(platRef, {
+    nom: "Pizza maison",
+    type: "VAE",
+    prix: 6.5,
+    parts: 10
+  });
+</script>
+
+  <meta charset="UTF-8" />
+  <title>Calendrier avec plats</title>
+  <style>
+    .calendar {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 5px;
+      max-width: 700px;
+      margin: auto;
+      text-align: center;
+    }
+    .day {
+      border: 1px solid #ccc;
+      padding: 10px;
+      min-height: 100px;
+      font-size: 14px;
+    }
+    .header {
+      font-weight: bold;
+      background-color: #eee;
+    }
+    img {
+      width: 40px;
+      height: auto;
+      margin-top: 5px;
+    }
+    #choix {
+      text-align: center;
+      margin-bottom: 10px;
+    }
+    button {
+      margin: 0 10px;
+      padding: 10px 15px;
+      font-size: 16px;
+    }
+  </style>
+  <link rel="stylesheet" href="style.css">
+
+</head>
+<body>
+  <h1>Menus du lycée</h1>
+  <div id="choix">
+    <button onclick="choisirMode('self')">Self pédagogique</button>
+    <button onclick="choisirMode('vae')">Vente à emporter</button>
+  </div>
+  <p id="mode-actuel" style="font-weight: bold; text-align:center;"></p>
+  <div style="text-align: center; margin: 10px 0;">
+    <button id="mois-prec">⬅️ Mois précédent</button>
+    <span id="month-name" style="font-weight: bold; margin: 0 15px;"></span>
+    <button id="mois-suiv">Mois suivant ➡️</button>
+  </div>
+
+  <div class="calendar" id="calendar"></div>
+  
+
+  <script>
+    let currentMonth = new Date().getMonth();
+    let currentYear = new Date().getFullYear();
+
+    const jours = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'];
+
+    function choisirMode(mode) {
+      localStorage.setItem("mode", mode);
+      document.getElementById("mode-actuel").innerText =
+        "Mode actuel : " + (mode === "self" ? "Self pédagogique" : "Vente à emporter");
+      afficherCalendrier(currentMonth, currentYear);
+    }
+
+    function afficherCalendrier(mois, annee) {
+  const jours = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'];
+  const premierJour = new Date(annee, mois, 1).getDay();
+  const nbJours = new Date(annee, mois + 1, 0).getDate();
+
+  document.getElementById("month-name").innerText =
+    new Date(annee, mois).toLocaleString("fr-FR", { month: "long", year: "numeric" });
+
+  const cal = document.getElementById("calendar");
+  cal.innerHTML = "";
+
+  for (let j of jours) {
+    const cell = document.createElement("div");
+    cell.className = "day header";
+    cell.innerText = j;
+    cal.appendChild(cell);
+  }
+
+  let decalage = premierJour === 0 ? 6 : premierJour - 1;
+  for (let i = 0; i < decalage; i++) {
+    const vide = document.createElement("div");
+    vide.className = "day";
+    cal.appendChild(vide);
+  }
+
+  const mode = localStorage.getItem("mode") || "self";
+  const plats = JSON.parse(localStorage.getItem("plats") || "[]");
+  const commandes = JSON.parse(localStorage.getItem("commandes") || "[]");
+  const menusSelf = JSON.parse(localStorage.getItem("menusSelf") || "[]");
+
+  for (let d = 1; d <= nbJours; d++) {
+    const caseJour = document.createElement("div");
+    caseJour.className = "day";
+    const dateStr = `${annee}-${String(mois + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+
+    let contenu = `<strong>${d}</strong><br>`;
+
+    const platsJour = plats.filter(p => p.date === dateStr && p.type === mode);
+
+    platsJour.forEach(p => {
+  const totalCommandé = commandes
+    .filter(c => c.date === p.date && c.plat === p.nom)
+    .reduce((sum, c) => sum + c.quantite, 0);
+  const partsRestantes = p.parts - totalCommandé;
+
+  contenu += `
+    <div onclick='event.stopPropagation(); ouvrirCommande(${JSON.stringify(p).replace(/'/g, "&apos;")})'
+         style="margin-top:5px; font-size: 12px; background:#f9f9f9; padding:4px; border:1px dashed #999; border-radius:5px; cursor:pointer;">
+      <strong>${p.nom}</strong><br>
+      <img src="${p.image}" style="width:30px;"><br>
+      ${p.prix} € — ${partsRestantes} part(s) restantes
+    </div>
+  `;
+});
+
+
+  
+
+    const menuSelf = menusSelf.find(menu => menu.date === dateStr);
+
+if (mode === "self" && menuSelf) {
+  contenu += `
+    <div onclick='event.stopPropagation(); afficherMenuSelf(${JSON.stringify(menuSelf).replace(/'/g, "&apos;")})'
+         style="margin-top:5px; font-size: 12px; background:#f0f0f0; padding:4px; border:1px dashed #999; border-radius:5px; cursor:pointer;">
+      <strong>Self pédagogique</strong><br>
+      
+      Entrée : ${menuSelf.entree}<br>
+      Plat : ${menuSelf.plat}<br>
+      Dessert : ${menuSelf.dessert}<br>
+      Chef : ${menuSelf.chef}
+    </div>
+  `;
+}
+
+
+
+    caseJour.innerHTML = contenu;
+    caseJour.onclick = () => afficherPlatsPourDate(dateStr);
+    cal.appendChild(caseJour);
+  }
+}
+
+    
+
+    function afficherPlatsDuJour() {
+  const plats = JSON.parse(localStorage.getItem("plats") || "[]");
+
+  const aujourdHui = new Date();
+  const dateStr = `${aujourdHui.getFullYear()}-${String(aujourdHui.getMonth() + 1).padStart(2, '0')}-${String(aujourdHui.getDate()).padStart(2, '0')}`;
+
+  const platsDuJour = plats.filter(p => p.date === dateStr);  // plus de filtre sur le type
+
+  const zonePlats = document.getElementById("plats-du-jour");
+  zonePlats.innerHTML = `<h2>Plats du jour (${dateStr})</h2>`;
+
+  if (platsDuJour.length === 0) {
+    zonePlats.innerHTML += "<p>Aucun plat pour aujourd'hui.</p>";
+    return;
+  }
+
+  platsDuJour.forEach(plat => {
+    const commandes = JSON.parse(localStorage.getItem("commandes") || "[]");
+    const totalCommandé = commandes
+      .filter(c => c.date === plat.date && c.plat === plat.nom)
+      .reduce((sum, c) => sum + c.quantite, 0);
+    const partsRestantes = plat.parts - totalCommandé;
+
+    zonePlats.innerHTML += `
+      <div style="border:1px solid #ccc; padding:10px; margin:10px auto; max-width:500px;">
+        <strong>${plat.nom}</strong><br>
+        <img src="${plat.image}" alt="${plat.nom}" style="width:100px;"><br>
+        <span>${plat.prix} € — ${plat.parts} part(s)</span><br>
+        <span>Parts restantes : ${partsRestantes}</span><br><br>
+        <button onclick='ouvrirCommande(${JSON.stringify(plat).replace(/'/g, "&apos;")})'>Commander</button>
+      </div>
+    `;
+  });
+}
+
+
+    function commander(date, plat, prix, idCommande) {
+      const nom = prompt(`Commande pour le ${date}\nPlat : ${plat}\n\nEntre ton nom :`);
+      if (!nom) return;
+
+      const partsStr = prompt("Combien de parts souhaites-tu ?");
+      const parts = parseInt(partsStr);
+      if (isNaN(parts) || parts <= 0) {
+        alert("Nombre invalide.");
+        return;
+      }
+
+      const commande = {
+        id: idCommande,
+        date: date,
+        type: localStorage.getItem("mode") || "self",
+        plat: plat,
+        prix: parseFloat(prix),
+        nomClient: nom,
+        quantite: parts
+      };
+
+      const commandesExistantes = JSON.parse(localStorage.getItem("commandes") || "[]");
+      commandesExistantes.push(commande);
+      localStorage.setItem("commandes", JSON.stringify(commandesExistantes));
+
+      alert(`Commande enregistrée !\n${parts} part(s) de ${plat} pour ${nom}`);
+    }
+
+    function ouvrirCommande(plat) {
+      const commandes = JSON.parse(localStorage.getItem("commandes") || "[]");
+      const totalCommandé = commandes
+        .filter(c => c.date === plat.date && c.plat === plat.nom)
+        .reduce((sum, c) => sum + c.quantite, 0);
+      const partsRestantes = plat.parts - totalCommandé;
+
+      let html = `
+        <h2>${plat.nom}</h2>
+        <img src="${plat.image}" alt="${plat.nom}" style="width:100%; max-height:200px; object-fit:cover;"><br>
+        <p><strong>Description :</strong> ${plat.description}</p>
+        <p><strong>Prix :</strong> ${plat.prix} €</p>
+        <p><strong>Parts restantes :</strong> ${partsRestantes}</p>
+      `;
+
+      if (partsRestantes > 0) {
+        html += `
+          <form onsubmit="soumettreCommande(event, '${plat.date}', '${plat.nom}', ${plat.prix})">
+            <label>Votre nom : <input type="text" name="nomClient" required></label><br>
+            <label>Quantité : <input type="number" name="quantite" min="1" max="${partsRestantes}" required></label><br><br>
+            <button type="submit">Commander</button>
+          </form>
+        `;
+      } else {
+        html += `<p style="color:red; font-weight:bold;">Ce plat est complet.</p>`;
+      }
+
+      document.getElementById("modal-content").innerHTML = html;
+      document.getElementById("modal").style.display = "block";
+    }
+
+    function fermerModal() {
+      document.getElementById("modal").style.display = "none";
+    }
+
+    function soumettreCommande(event, date, nomPlat, prix) {
+      event.preventDefault();
+      const form = event.target;
+      const nomClient = form.nomClient.value.trim();
+      const quantite = parseInt(form.quantite.value);
+
+      if (!nomClient || isNaN(quantite) || quantite <= 0) {
+        alert("Veuillez entrer un nom valide et une quantité correcte.");
+        return;
+      }
+
+      const commandes = JSON.parse(localStorage.getItem("commandes") || "[]");
+      const commande = {
+        id: `${date}-${nomPlat}-${Date.now()}`,
+        date: date,
+        plat: nomPlat,
+        prix: prix,
+        nomClient: nomClient,
+        quantite: quantite
+      };
+
+      commandes.push(commande);
+      localStorage.setItem("commandes", JSON.stringify(commandes));
+      alert(`Commande enregistrée : ${quantite} part(s) de ${nomPlat} pour ${nomClient}`);
+      fermerModal();
+    }
+
+    function afficherPlatsPourDate(date) {
+      const mode = localStorage.getItem("mode") || "self";
+      const plats = JSON.parse(localStorage.getItem("plats") || "[]");
+      const commandes = JSON.parse(localStorage.getItem("commandes") || "[]");
+      const platsDuJour = plats.filter(p => p.date === date && p.type === mode);
+
+      if (platsDuJour.length === 0) {
+        alert("Aucun plat pour cette date dans ce mode.");
+        return;
+      }
+
+      let html = `<h2>Plats du ${date}</h2>`;
+
+      platsDuJour.forEach(plat => {
+        const menusSelf = JSON.parse(localStorage.getItem("menusSelf") || "[]");
+        if (mode === "self") {
+  const menuSelf = menusSelf.find(menu => menu.date === dateStr);
+  if (menuSelf) {
+    contenu += `
+      <div style="margin-top:5px; font-size: 12px; background:#f0f0f0; padding:4px; border:1px dashed #999; border-radius:5px;">
+        <strong>Self pédagogique</strong><br>
+        <img src="${menuSelf.image}" style="width:30px;"><br>
+        Entrée : ${menuSelf.entree}<br>
+        Plat : ${menuSelf.plat}<br>
+        Dessert : ${menuSelf.dessert}<br>
+        Chef : ${menuSelf.chef}
+      </div>
+    `;
+  }
+}
+
+
+
+        const totalCommandé = commandes
+          .filter(c => c.date === plat.date && c.plat === plat.nom)
+          .reduce((sum, c) => sum + c.quantite, 0);
+        const partsRestantes = plat.parts - totalCommandé;
+
+        html += `
+          <div style="border:1px solid #ccc; padding:10px; margin-bottom:10px;">
+            <strong>${plat.nom}</strong><br>
+            <img src="${plat.image}" alt="${plat.nom}" style="width:80px;"><br>
+            <em>${plat.prix} €</em><br>
+            <p><strong>Parts restantes :</strong> ${partsRestantes}</p>
+            ${plat.prof ? `<p><strong>Responsable :</strong> ${plat.prof}</p>` : ""}
+            <button onclick='ouvrirCommande(${JSON.stringify(plat).replace(/'/g, "&apos;")})'>Commander</button>
+          </div>
+        `;
+      });
+
+      document.getElementById("modal-content").innerHTML = html;
+      document.getElementById("modal").style.display = "block";
+    }
+
+    // Navigation mois précédent / suivant
+    document.getElementById("mois-prec").addEventListener("click", () => {
+      currentMonth--;
+      if (currentMonth < 0) {
+        currentMonth = 11;
+        currentYear--;
+      }
+      afficherCalendrier(currentMonth, currentYear);
+    });
+
+    document.getElementById("mois-suiv").addEventListener("click", () => {
+      currentMonth++;
+      if (currentMonth > 11) {
+        currentMonth = 0;
+        currentYear++;
+      }
+      afficherCalendrier(currentMonth, currentYear);
+    });
+
+    // Initialisation au chargement
+    window.addEventListener("DOMContentLoaded", () => {
+      const mode = localStorage.getItem("mode") || "self";
+      localStorage.setItem("mode", mode);
+      document.getElementById("mode-actuel").innerText =
+        "Mode actuel : " + (mode === "self" ? "Self pédagogique" : "Vente à emporter");
+      afficherCalendrier(currentMonth, currentYear);
+      afficherPlatsDuJour();
+    });
+    function afficherMenuSelf(menu) {
+  const html = `
+    <h2>Menu Self du ${menu.date}</h2>
+    <p><strong>Entrée :</strong> ${menu.entree}<br><img src="${menu.imageEntree}" style="width:100px;"></p>
+    <p><strong>Plat :</strong> ${menu.plat}<br><img src="${menu.imagePlat}" style="width:100px;"></p>
+    <p><strong>Dessert :</strong> ${menu.dessert}<br><img src="${menu.imageDessert}" style="width:100px;"></p>
+    <p><strong>Chef :</strong> ${menu.chef}</p>
+  `;
+  document.getElementById("modal-content").innerHTML = html;
+  document.getElementById("modal").style.display = "block";
+}
+
+
+  </script>
+  
+<div id="modal-index" style="
+  display: none;
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  z-index: 1000;
+  overflow: auto;
+">
+  <div style="
+    background: white;
+    margin: 60px auto;
+    padding: 20px;
+    border-radius: 10px;
+    max-width: 500px;
+    width: 90%;
+    box-sizing: border-box;
+    position: relative;
+  ">
+
+
+
+
+</script>
+
+</body>
+</html>
