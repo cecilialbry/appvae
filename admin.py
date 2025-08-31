@@ -227,3 +227,131 @@ for m in menus:
         if st.button(f"Supprimer {m['plat']}", key=f"del_menu_{m['plat']}_{m['date']}"):
             supprimer_menu_self(m['date'])
             st.experimental_rerun()
+import streamlit as st
+import datetime
+import json
+import os
+
+# Fichiers JSON pour stocker les données
+PLATS_FILE = "plats.json"
+MENUS_FILE = "menus_self.json"
+
+def load_json(file_path):
+    if os.path.exists(file_path):
+        with open(file_path, "r", encoding="utf-8") as f:
+            return json.load(f)
+    return []
+
+def save_json(file_path, data):
+    with open(file_path, "w", encoding="utf-8") as f:
+        json.dump(data, f, ensure_ascii=False, indent=4)
+
+plats = load_json(PLATS_FILE)
+menus_self = load_json(MENUS_FILE)
+
+st.title("Calendrier des plats et menus")
+
+# Choix du mois et de l'année
+col1, col2 = st.columns(2)
+with col1:
+    mois = st.number_input("Mois", min_value=1, max_value=12, value=datetime.date.today().month)
+with col2:
+    annee = st.number_input("Année", min_value=2000, max_value=2100, value=datetime.date.today().year)
+
+# Création du calendrier
+start_date = datetime.date(annee, mois, 1)
+nb_jours = (datetime.date(annee + (mois // 12), ((mois % 12) + 1), 1) - start_date).days
+jours_semaine = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim']
+
+st.write(f"### {start_date.strftime('%B %Y')}")
+
+# Afficher les jours de la semaine
+cols = st.columns(7)
+for idx, jour in enumerate(jours_semaine):
+    cols[idx].markdown(f"**{jour}**")
+
+first_weekday = (start_date.weekday() + 1) % 7  # Lundi = 0
+current_col = 0
+
+# Ajouter des cases vides pour le premier jour
+cols = st.columns(7)
+for _ in range(first_weekday):
+    cols[current_col].write("")
+    current_col += 1
+
+# Affichage des jours avec plats et menus
+for day in range(1, nb_jours + 1):
+    if current_col >= 7:
+        cols = st.columns(7)
+        current_col = 0
+
+    date_str = f"{annee}-{mois:02d}-{day:02d}"
+    plats_jour = [p for p in plats if p["date"] == date_str]
+    menus_jour = [m for m in menus_self if m["date"] == date_str]
+
+    with st.container():
+        cols[current_col].markdown(f"**{day}**")
+
+        # Plats cliquables
+        for idx, p in enumerate(plats_jour):
+            if cols[current_col].button(p["nom"], key=f"{date_str}_plat_{idx}"):
+                with st.modal(f"Plat : {p['nom']}"):
+                    nom = st.text_input("Nom", value=p['nom'])
+                    prix = st.number_input("Prix (€)", value=p['prix'])
+                    parts = st.number_input("Parts", value=p['parts'], step=1)
+                    desc = st.text_area("Description", value=p['description'])
+                    image = st.text_input("Image URL", value=p['image'])
+                    prof = st.text_input("Professeur", value=p['prof'])
+
+                    if st.button("Enregistrer modifications", key=f"modif_{date_str}_{idx}"):
+                        p.update({
+                            "nom": nom,
+                            "prix": prix,
+                            "parts": parts,
+                            "description": desc,
+                            "image": image,
+                            "prof": prof
+                        })
+                        save_json(PLATS_FILE, plats)
+                        st.success("Plat modifié !")
+                        st.experimental_rerun()
+
+                    if st.button("Supprimer ce plat", key=f"supprimer_{date_str}_{idx}"):
+                        plats.remove(p)
+                        save_json(PLATS_FILE, plats)
+                        st.success("Plat supprimé !")
+                        st.experimental_rerun()
+
+        # Menus cliquables
+        for idx, m in enumerate(menus_jour):
+            if cols[current_col].button(m["plat"], key=f"{date_str}_menu_{idx}"):
+                with st.modal(f"Menu Self : {m['plat']}"):
+                    entree = st.text_input("Entrée", value=m['entree'])
+                    image_entree = st.text_input("Image entrée", value=m.get("imageEntree", ""))
+                    plat_name = st.text_input("Plat", value=m['plat'])
+                    image_plat = st.text_input("Image plat", value=m.get("imagePlat", ""))
+                    dessert = st.text_input("Dessert", value=m['dessert'])
+                    image_dessert = st.text_input("Image dessert", value=m.get("imageDessert", ""))
+                    chef = st.text_input("Chef", value=m['chef'])
+
+                    if st.button("Enregistrer modifications", key=f"modif_self_{date_str}_{idx}"):
+                        m.update({
+                            "entree": entree,
+                            "imageEntree": image_entree,
+                            "plat": plat_name,
+                            "imagePlat": image_plat,
+                            "dessert": dessert,
+                            "imageDessert": image_dessert,
+                            "chef": chef
+                        })
+                        save_json(MENUS_FILE, menus_self)
+                        st.success("Menu modifié !")
+                        st.experimental_rerun()
+
+                    if st.button("Supprimer ce menu", key=f"supprimer_self_{date_str}_{idx}"):
+                        menus_self.remove(m)
+                        save_json(MENUS_FILE, menus_self)
+                        st.success("Menu supprimé !")
+                        st.experimental_rerun()
+
+    current_col += 1
