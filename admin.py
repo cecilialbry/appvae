@@ -134,70 +134,73 @@ def save_json(file, data):
 PLATS_FILE = "plats.json"
 MENUS_FILE = "menus_self.json"
 
-# ---------- Calendrier interactif ----------
-st.title("Calendrier des plats & Self pédagogique")
+import streamlit as st
+import json, os
+from datetime import date, datetime
+import calendar
 
-# Mois et année
-today = date.today()
-month = st.selectbox("Mois", list(calendar.month_name)[1:], index=today.month-1)
-year = st.number_input("Année", min_value=2000, max_value=2100, value=today.year, step=1)
-month_index = list(calendar.month_name).index(month)
+# ---------- Fonctions JSON ----------
+def load_json(file):
+    if os.path.exists(file):
+        with open(file, "r", encoding="utf-8") as f:
+            return json.load(f)
+    return []
 
-# Récupérer les données
+def save_json(file, data):
+    with open(file, "w", encoding="utf-8") as f:
+        json.dump(data, f, indent=4, ensure_ascii=False)
+
+PLATS_FILE = "plats.json"
+MENUS_FILE = "menus_self.json"
+
 plats = load_json(PLATS_FILE)
 menus = load_json(MENUS_FILE)
 
-# Jours de la semaine
-jours = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim']
-st.write(" | ".join(jours))
+# ---------- Calendrier ----------
+st.title("Calendrier interactif des plats & menus")
+
+# Mois et année
+today = date.today()
+month_idx = st.selectbox("Mois", list(range(1, 13)), index=today.month-1)
+year = st.number_input("Année", 2000, 2100, today.year)
+
+# Premier jour et nombre de jours
+first_weekday, nb_days = calendar.monthrange(year, month_idx)
+decalage = (first_weekday + 6) % 7  # Décalage pour que lundi=0
+
+# Construction du calendrier
+st.write("Lun | Mar | Mer | Jeu | Ven | Sam | Dim")
 st.markdown("---")
 
-# Calcul du premier jour et nombre de jours
-first_weekday, nb_days = calendar.monthrange(year, month_index)
-# Décalage pour que lundi = 0
-decalage = (first_weekday + 6) % 7
+days_grid = [""]*decalage + list(range(1, nb_days+1))
+for i in range(0, len(days_grid), 7):
+    week = days_grid[i:i+7]
+    cols = st.columns(7)
+    for col, day in zip(cols, week):
+        with col:
+            if day != "":
+                date_str = f"{year}-{month_idx:02d}-{day:02d}"
+                # Bouton pour le jour
+                if st.button(f"{day}", key=date_str):
+                    st.session_state["selected_day"] = date_str
 
-# Générer les cases
-days_grid = ["" for _ in range(decalage)] + [str(d) for d in range(1, nb_days+1)]
-
-cols = st.columns(7)
-for i, day in enumerate(days_grid):
-    col = cols[i % 7]
-    with col:
-        if day != "":
-            date_str = date(year, month_index, int(day)).isoformat()
-            st.markdown(f"**{day}**")
-            # Plats
-            plats_jour = [p for p in plats if p["date"] == date_str]
-            for p in plats_jour:
-                if st.button(f"{p['nom']} ({p['prix']}€)", key=f"{p['nom']}_{date_str}"):
-                    st.session_state["selected"] = p
-            # Menus
-            menus_jour = [m for m in menus if m["date"] == date_str]
-            for m in menus_jour:
-                if st.button(f"🍽️ {m['plat']}", key=f"{m['plat']}_{date_str}"):
-                    st.session_state["selected_menu"] = m
-
-# Afficher détails plat/menu sélectionné
-if "selected" in st.session_state:
-    p = st.session_state["selected"]
-    st.markdown(f"### {p['nom']} ({p['type']})")
-    st.write(f"Date: {p['date']}")
-    st.write(f"Prix: {p['prix']} € | Parts: {p['parts']}")
-    st.write(f"Description: {p['description']}")
-    st.write(f"Prof: {p.get('prof','')}")
-    if p.get("image"):
-        st.image(p["image"], width=150)
-
-if "selected_menu" in st.session_state:
-    m = st.session_state["selected_menu"]
-    st.markdown(f"### Menu Self : {m['plat']}")
-    st.write(f"Entrée: {m['entree']} | Dessert: {m['dessert']}")
-    st.write(f"Chef: {m['chef']}")
-    if m.get("imageEntree"): st.image(m["imageEntree"], width=60)
-    if m.get("imagePlat"): st.image(m["imagePlat"], width=60)
-    if m.get("imageDessert"): st.image(m["imageDessert"], width=60)
-
+# Affichage des plats et menus pour le jour sélectionné
+if "selected_day" in st.session_state:
+    date_sel = st.session_state["selected_day"]
+    st.markdown(f"## Plats et menus du {date_sel}")
+    
+    plats_jour = [p for p in plats if p["date"] == date_sel]
+    menus_jour = [m for m in menus if m["date"] == date_sel]
+    
+    for p in plats_jour:
+        st.write(f"**{p['nom']}** ({p['type']}) - {p['prix']}€ - Parts: {p['parts']}")
+        if p.get("image"): st.image(p["image"], width=100)
+    
+    for m in menus_jour:
+        st.write(f"🍽️ **{m['plat']}** | Entrée: {m['entree']} | Dessert: {m['dessert']} | Chef: {m['chef']}")
+        if m.get("imageEntree"): st.image(m["imageEntree"], width=50)
+        if m.get("imagePlat"): st.image(m["imagePlat"], width=50)
+        if m.get("imageDessert"): st.image(m["imageDessert"], width=50)
 
 # -----------------------------------------------
 # Liste des plats existants avec suppression
