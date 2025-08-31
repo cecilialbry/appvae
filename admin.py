@@ -115,38 +115,89 @@ else:
 
 st.markdown("---")
 
-# -----------------------------------------------
-# Affichage calendrier
-st.header("Calendrier des plats")
+import streamlit as st
+import json, os
+from datetime import date, datetime
+import calendar
+
+# ---------- Fonctions JSON ----------
+def load_json(file):
+    if os.path.exists(file):
+        with open(file, "r", encoding="utf-8") as f:
+            return json.load(f)
+    return []
+
+def save_json(file, data):
+    with open(file, "w", encoding="utf-8") as f:
+        json.dump(data, f, indent=4, ensure_ascii=False)
+
+PLATS_FILE = "plats.json"
+MENUS_FILE = "menus_self.json"
+
+# ---------- Calendrier interactif ----------
+st.title("Calendrier des plats & Self pédagogique")
+
+# Mois et année
 today = date.today()
 month = st.selectbox("Mois", list(calendar.month_name)[1:], index=today.month-1)
 year = st.number_input("Année", min_value=2000, max_value=2100, value=today.year, step=1)
 month_index = list(calendar.month_name).index(month)
 
-# Affichage des jours
+# Récupérer les données
+plats = load_json(PLATS_FILE)
+menus = load_json(MENUS_FILE)
+
+# Jours de la semaine
 jours = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim']
 st.write(" | ".join(jours))
 st.markdown("---")
 
-# Affichage jours et plats/menus
-_, nb_jours = calendar.monthrange(year, month_index)
-for d in range(1, nb_jours+1):
-    date_str = date(year, month_index, d).isoformat()
-    st.markdown(f"**{d}/{month_index}/{year}**")
-    plats = load_json(PLATS_FILE)
-    plats_jour = [p for p in plats if p["date"] == date_str]
-    for p in plats_jour:
-        st.write(f"- {p['nom']} ({p['prix']}€ - {p['parts']} parts) Prof: {p.get('prof','')}")
-        if p.get("image"):
-            st.image(p["image"], width=80)
+# Calcul du premier jour et nombre de jours
+first_weekday, nb_days = calendar.monthrange(year, month_index)
+# Décalage pour que lundi = 0
+decalage = (first_weekday + 6) % 7
 
-    menus = load_json(MENUS_FILE)
-    menu_jour = [m for m in menus if m["date"] == date_str]
-    for m in menu_jour:
-        st.write(f"🍽️ Self pédagogique : {m['entree']} - {m['plat']} - {m['dessert']}, Chef: {m['chef']}")
-        if m.get("imageEntree"): st.image(m["imageEntree"], width=40)
-        if m.get("imagePlat"): st.image(m["imagePlat"], width=40)
-        if m.get("imageDessert"): st.image(m["imageDessert"], width=40)
+# Générer les cases
+days_grid = ["" for _ in range(decalage)] + [str(d) for d in range(1, nb_days+1)]
+
+cols = st.columns(7)
+for i, day in enumerate(days_grid):
+    col = cols[i % 7]
+    with col:
+        if day != "":
+            date_str = date(year, month_index, int(day)).isoformat()
+            st.markdown(f"**{day}**")
+            # Plats
+            plats_jour = [p for p in plats if p["date"] == date_str]
+            for p in plats_jour:
+                if st.button(f"{p['nom']} ({p['prix']}€)", key=f"{p['nom']}_{date_str}"):
+                    st.session_state["selected"] = p
+            # Menus
+            menus_jour = [m for m in menus if m["date"] == date_str]
+            for m in menus_jour:
+                if st.button(f"🍽️ {m['plat']}", key=f"{m['plat']}_{date_str}"):
+                    st.session_state["selected_menu"] = m
+
+# Afficher détails plat/menu sélectionné
+if "selected" in st.session_state:
+    p = st.session_state["selected"]
+    st.markdown(f"### {p['nom']} ({p['type']})")
+    st.write(f"Date: {p['date']}")
+    st.write(f"Prix: {p['prix']} € | Parts: {p['parts']}")
+    st.write(f"Description: {p['description']}")
+    st.write(f"Prof: {p.get('prof','')}")
+    if p.get("image"):
+        st.image(p["image"], width=150)
+
+if "selected_menu" in st.session_state:
+    m = st.session_state["selected_menu"]
+    st.markdown(f"### Menu Self : {m['plat']}")
+    st.write(f"Entrée: {m['entree']} | Dessert: {m['dessert']}")
+    st.write(f"Chef: {m['chef']}")
+    if m.get("imageEntree"): st.image(m["imageEntree"], width=60)
+    if m.get("imagePlat"): st.image(m["imagePlat"], width=60)
+    if m.get("imageDessert"): st.image(m["imageDessert"], width=60)
+
 
 # -----------------------------------------------
 # Liste des plats existants avec suppression
