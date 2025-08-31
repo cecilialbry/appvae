@@ -1,238 +1,175 @@
+import streamlit as st
+import json
+import os
+from datetime import date, datetime
+import calendar
 
+# -----------------------------------------------
+# Fichiers JSON pour persistance
+PLATS_FILE = "plats.json"
+COMMANDES_FILE = "commandes.json"
+MENUS_FILE = "menus_self.json"
 
-@app.route('/')
-def index():
-    return render_template('index.html')
+def load_json(filename):
+    if os.path.exists(filename):
+        with open(filename, "r", encoding="utf-8") as f:
+            return json.load(f)
+    return []
 
-@app.route('/add_plat', methods=['POST'])
-def add_plat():
-    data = request.form
-    plat_data = {
-        'date': data['date'],
-        'nom': data['nom'],
-        'prix': float(data['prix']),
-        'parts': int(data['parts']),
-        'image': data['image'],
-        'description': data['description'],
-        'prof': data['prof'],
-        'type': 'vae'
-    }
+def save_json(filename, data):
+    with open(filename, "w", encoding="utf-8") as f:
+        json.dump(data, f, indent=4, ensure_ascii=False)
 
-    ref = db.reference('plats')
-    new_plat_ref = ref.push()
-    new_plat_ref.set(plat_data)
+# -----------------------------------------------
+# Initialisation session
+if "mode" not in st.session_state:
+    st.session_state.mode = "self"
 
-    return jsonify({'status': 'success'})
+# -----------------------------------------------
+# Fonctions utilitaires
+def ajouter_plat(plat):
+    plats = load_json(PLATS_FILE)
+    plats.append(plat)
+    save_json(PLATS_FILE, plats)
 
-@app.route('/add_self', methods=['POST'])
-def add_self():
-    data = request.form
-    self_data = {
-        'date': data['date-self'],
-        'entree': data['entree'],
-        'image_entree': data['image-entree'],
-        'plat': data['plat'],
-        'image_plat': data['image-plat'],
-        'dessert': data['dessert'],
-        'image_dessert': data['image-dessert'],
-        'prof': data['prof-self'],
-        'type': 'self'
-    }
+def ajouter_menu_self(menu):
+    menus = load_json(MENUS_FILE)
+    menus.append(menu)
+    save_json(MENUS_FILE, menus)
 
-    ref = db.reference('selfs')
-    new_self_ref = ref.push()
-    new_self_ref.set(self_data)
+def supprimer_plat(nom, date_str):
+    plats = load_json(PLATS_FILE)
+    plats = [p for p in plats if not (p["nom"] == nom and p["date"] == date_str)]
+    save_json(PLATS_FILE, plats)
+    # Supprimer commandes liées
+    commandes = load_json(COMMANDES_FILE)
+    commandes = [c for c in commandes if not (c["plat"] == nom and c["date"] == date_str)]
+    save_json(COMMANDES_FILE, commandes)
 
-    return jsonify({'status': 'success'})
+def supprimer_menu_self(date_str):
+    menus = load_json(MENUS_FILE)
+    menus = [m for m in menus if m["date"] != date_str]
+    save_json(MENUS_FILE, menus)
 
-@app.route('/get_plats')
-def get_plats():
-    ref = db.reference('plats')
-    plats = ref.get()
-    return jsonify(plats or {})
+# -----------------------------------------------
+st.title("Gestion des ventes à emporter & Self pédagogique")
 
-if __name__ == '__main__':
-    app.run(debug=True)
-```
+# Choix du mode
+mode = st.radio("Mode actuel :", ["Self pédagogique", "Vente à emporter"])
+st.session_state.mode = "self" if mode=="Self pédagogique" else "vae"
 
+st.markdown("---")
+# -----------------------------------------------
+# Formulaire ajout plat à emporter
+if st.session_state.mode == "vae":
+    st.header("Ajouter un plat à emporter")
+    with st.form("form_vae"):
+        date_str = st.date_input("Date", value=date.today())
+        nom = st.text_input("Nom du plat")
+        prix = st.number_input("Prix (€)", min_value=0.0, step=0.01)
+        parts = st.number_input("Nombre de parts", min_value=1, step=1)
+        image = st.text_input("Image (URL)")
+        description = st.text_input("Description")
+        prof = st.text_input("Professeur responsable")
+        submitted = st.form_submit_button("Ajouter le plat")
+        if submitted:
+            plat = {
+                "date": date_str.isoformat(),
+                "type": "vae",
+                "nom": nom,
+                "prix": prix,
+                "parts": parts,
+                "image": image,
+                "description": description,
+                "prof": prof
+            }
+            ajouter_plat(plat)
+            st.success(f"Plat {nom} ajouté !")
 
+# Formulaire ajout menu self
+else:
+    st.header("Ajouter un menu Self pédagogique")
+    with st.form("form_self"):
+        date_self = st.date_input("Date", value=date.today())
+        entree = st.text_input("Entrée")
+        image_entree = st.text_input("Image Entrée (URL)")
+        plat_menu = st.text_input("Plat")
+        image_plat = st.text_input("Image Plat (URL)")
+        dessert = st.text_input("Dessert")
+        image_dessert = st.text_input("Image Dessert (URL)")
+        chef = st.text_input("Chef responsable")
+        submitted = st.form_submit_button("Ajouter le menu")
+        if submitted:
+            menu = {
+                "date": date_self.isoformat(),
+                "entree": entree,
+                "imageEntree": image_entree,
+                "plat": plat_menu,
+                "imagePlat": image_plat,
+                "dessert": dessert,
+                "imageDessert": image_dessert,
+                "chef": chef
+            }
+            ajouter_menu_self(menu)
+            st.success(f"Menu du {date_self} ajouté !")
 
-```html
-<!DOCTYPE html>
-<html lang="fr">
-<head>
-    <meta charset="UTF-8">
-    <title>Admin - Ajouter un plat</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            background-color: #f5f5f5;
-            margin: 20px;
-        }
+st.markdown("---")
 
-        h1, h2 {
-            text-align: center;
-            color: #333;
-        }
+# -----------------------------------------------
+# Affichage calendrier
+st.header("Calendrier des plats")
+today = date.today()
+month = st.selectbox("Mois", list(calendar.month_name)[1:], index=today.month-1)
+year = st.number_input("Année", min_value=2000, max_value=2100, value=today.year, step=1)
+month_index = list(calendar.month_name).index(month)
 
-        form {
-            background-color: #ffffff;
-            padding: 15px;
-            border-radius: 10px;
-            max-width: 600px;
-            margin: auto;
-            box-shadow: 0 0 10px rgba(0,0,0,0.1);
-        }
+# Affichage des jours
+jours = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim']
+st.write(" | ".join(jours))
+st.markdown("---")
 
-        label {
-            display: block;
-            margin-top: 10px;
-            font-weight: bold;
-        }
+# Affichage jours et plats/menus
+_, nb_jours = calendar.monthrange(year, month_index)
+for d in range(1, nb_jours+1):
+    date_str = date(year, month_index, d).isoformat()
+    st.markdown(f"**{d}/{month_index}/{year}**")
+    plats = load_json(PLATS_FILE)
+    plats_jour = [p for p in plats if p["date"] == date_str]
+    for p in plats_jour:
+        st.write(f"- {p['nom']} ({p['prix']}€ - {p['parts']} parts) Prof: {p.get('prof','')}")
+        if p.get("image"):
+            st.image(p["image"], width=80)
 
-        input, select {
-            width: 100%;
-            padding: 8px;
-            margin-top: 4px;
-            margin-bottom: 10px;
-            border: 1px solid #ccc;
-            border-radius: 5px;
-        }
+    menus = load_json(MENUS_FILE)
+    menu_jour = [m for m in menus if m["date"] == date_str]
+    for m in menu_jour:
+        st.write(f"🍽️ Self pédagogique : {m['entree']} - {m['plat']} - {m['dessert']}, Chef: {m['chef']}")
+        if m.get("imageEntree"): st.image(m["imageEntree"], width=40)
+        if m.get("imagePlat"): st.image(m["imagePlat"], width=40)
+        if m.get("imageDessert"): st.image(m["imageDessert"], width=40)
 
-        #mode-actuel {
-            text-align: center;
-            margin-top: 15px;
-            font-size: 1.1em;
-            color: #555;
-        }
+# -----------------------------------------------
+# Liste des plats existants avec suppression
+st.markdown("---")
+st.subheader("Plats existants")
+plats = load_json(PLATS_FILE)
+for p in plats:
+    col1, col2 = st.columns([4,1])
+    with col1:
+        st.write(f"{p['date']} - {p['nom']} ({p['type']})")
+    with col2:
+        if st.button(f"Supprimer {p['nom']}", key=f"del_{p['nom']}_{p['date']}"):
+            supprimer_plat(p['nom'], p['date'])
+            st.experimental_rerun()
 
-        #liste-plats > div {
-            border: 1px solid #ddd;
-            padding: 10px 15px;
-            margin: 12px auto;
-            max-width: 600px;
-            border-radius: 8px;
-            background-color: #ffffff;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-        }
-
-        button {
-            padding: 6px 12px;
-            font-size: 14px;
-            border-radius: 5px;
-            border: 1px solid #aaa;
-            background-color: #eaeaea;
-            cursor: pointer;
-            transition: background 0.3s;
-        }
-
-        button:hover {
-            background-color: #d8d8d8;
-        }
-
-        #resultat-commandes {
-            max-width: 600px;
-            margin: auto;
-            background-color: #fff;
-            padding: 10px;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-        }
-
-        hr {
-            margin: 20px 0;
-        }
-
-        .calendar {
-            display: grid;
-            grid-template-columns: repeat(7, 1fr);
-            gap: 5px;
-            max-width: 700px;
-            margin: auto;
-            text-align: center;
-            margin-top: 20px;
-        }
-
-        .day {
-            border: 1px solid #ccc;
-            padding: 10px;
-            min-height: 60px;
-            font-size: 14px;
-            background-color: white;
-            border-radius: 6px;
-            cursor: pointer;
-        }
-
-        .header {
-            font-weight: bold;
-            background-color: #eee;
-            cursor: default;
-        }
-    </style>
-</head>
-<body>
-    <h2>Ajouter une vente à emporter</h2>
-
-    <form id="form-plat" action="/add_plat" method="post">
-        <label>Date : <input type="date" name="date" required></label>
-        <label>Nom du plat : <input type="text" name="nom" required></label>
-        <label>Prix (€) : <input type="number" name="prix" step="0.01" required></label>
-        <label>Nombre de parts disponibles : <input type="number" name="parts" required></label>
-        <label>Image (URL) : <input type="text" name="image" required></label>
-        <label>Description : <input type="text" name="description" required></label>
-        <label>Professeur responsable (VAE) :</label>
-        <input type="text" name="prof" placeholder="Nom du professeur"><br><br>
-        <input type="hidden" name="type-plat" value="vae">
-
-        <p id="mode-actuel" style="font-weight: bold;"></p>
-        <button type="submit">Ajouter le plat</button>
-    </form>
-
-    <div id="calendrier" class="calendrier"></div>
-
-    <h2>Ajouter un menu Self pédagogique</h2>
-    <form id="form-self" action="/add_self" method="post">
-        <label>Date : <input type="date" name="date-self" required></label><br>
-        <label>Entrée : <input type="text" name="entree" required></label><br>
-        <label>Image entrée : <input type="text" name="image-entree" placeholder="URL image"></label><br>
-        <label>Plat : <input type="text" name="plat" required></label><br>
-        <label>Image plat : <input type="text" name="image-plat" placeholder="URL image"></label><br>
-        <label>Dessert : <input type="text" name="dessert" required></label><br>
-        <label>Image dessert : <input type="text" name="image-dessert" placeholder="URL image"></label><br>
-        <label>Professeur responsable (Self) :</label>
-        <input type="text" name="prof-self" placeholder="Nom du professeur"><br><br>
-        <input type="hidden" name="type-self" value="self">
-
-        <button type="submit">Ajouter le menu Self</button>
-    </form>
-
-    <script>
-        // Function to display dishes in the calendar
-        function afficherPlatsDansCalendrier() {
-            fetch('/get_plats')
-                .then(response => response.json())
-                .then(data => {
-                    document.querySelectorAll('.day .plats').forEach(el => el.remove());
-
-                    Object.entries(data).forEach(([id, plat]) => {
-                        const date = new Date(plat.date);
-                        const jour = date.getDate();
-                        const caseJour = document.querySelector(`.day[data-day="${jour}"]`);
-                        if (caseJour) {
-                            const div = document.createElement("div");
-                            div.className = "plats";
-                            div.textContent = `${plat.nom} (${plat.parts} parts)`;
-                            caseJour.appendChild(div);
-                        }
-                    });
-                });
-        }
-
-        // Call the function when the page loads
-        window.onload = function() {
-            afficherPlatsDansCalendrier();
-        };
-    </script>
-</body>
-</html>
-```
+# Liste menus self existants
+st.subheader("Menus self existants")
+menus = load_json(MENUS_FILE)
+for m in menus:
+    col1, col2 = st.columns([4,1])
+    with col1:
+        st.write(f"{m['date']} - {m['plat']} ({m['entree']}/{m['dessert']})")
+    with col2:
+        if st.button(f"Supprimer {m['plat']}", key=f"del_menu_{m['plat']}_{m['date']}"):
+            supprimer_menu_self(m['date'])
+            st.experimental_rerun()
