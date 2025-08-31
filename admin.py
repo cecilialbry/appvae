@@ -55,7 +55,7 @@ if __name__ == '__main__':
     app.run(debug=True)
 ```
 
-And here's the corresponding HTML template (index.html) that should be placed in a 'templates' folder:
+
 
 ```html
 <!DOCTYPE html>
